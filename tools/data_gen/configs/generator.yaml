@@ -1,0 +1,8 @@
+kafka:
+  bootstrap_servers: "localhost:9092"
+  topic: "clicks_raw_v1"
+
+generator:
+  events_per_second: 10
+  session_timeout_minutes: 30
+  run_seconds: 5

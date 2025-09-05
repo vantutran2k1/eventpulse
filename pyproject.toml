@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "eventpulse"
+version = "0.1.0"
+description = ""
+authors = ["vantutran2k1 <vantu.tran2k1@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+pyyaml = "^6.0.2"
+faker = "^37.6.0"
+confluent-kafka = "^2.11.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
