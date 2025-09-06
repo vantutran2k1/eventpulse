@@ -10,6 +10,10 @@ python = "^3.12"
 pyyaml = "^6.0.2"
 faker = "^37.6.0"
 confluent-kafka = "^2.11.1"
+requests = "^2.32.5"
+python-dotenv = "^1.1.1"
+orjson = "^3.11.3"
+avro = "^1.12.0"
 
 
 [build-system]

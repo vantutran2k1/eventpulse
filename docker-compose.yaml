@@ -52,3 +52,34 @@ services:
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
       KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
       KAFKA_CLUSTERS_0_SCHEMAREGISTRY: http://schema-registry:8081
+
+  spark-master:
+    image: bitnami/spark:3.5
+    container_name: eventpulse-spark-master
+    environment:
+      - SPARK_MODE=master
+    ports:
+      - "7077:7077"
+      - "8088:8080"
+
+  spark-worker:
+    image: bitnami/spark:3.5
+    container_name: eventpulse-spark-worker
+    depends_on:
+      - spark-master
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_WORKER_MEMORY=1G
+      - SPARK_WORKER_CORES=1
+
+  spark-history:
+    image: bitnami/spark:3.5
+    container_name: eventpulse-spark-history
+    environment:
+      - SPARK_MODE=history-server
+      - SPARK_HISTORY_OPTS=-Dspark.history.fs.logDirectory=/tmp/spark-events
+    ports:
+      - "18080:18080"
+    volumes:
+      - ./spark-events:/tmp/spark-events

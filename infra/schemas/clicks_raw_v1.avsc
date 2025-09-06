@@ -1,0 +1,14 @@
+{
+  "type": "record",
+  "namespace": "eventpulse.clicks",
+  "name": "ClickEvent",
+  "fields": [
+    {"name": "user_id", "type": "string"},
+    {"name": "session_id", "type": "string"},
+    {"name": "event_type", "type": "string"},
+    {"name": "url", "type": "string"},
+    {"name": "referer", "type": "string"},
+    {"name": "user_agent", "type": "string"},
+    {"name": "timestamp", "type": "long"}
+  ]
+}
