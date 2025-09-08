@@ -53,33 +53,86 @@ services:
       KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
       KAFKA_CLUSTERS_0_SCHEMAREGISTRY: http://schema-registry:8081
 
-  spark-master:
-    image: bitnami/spark:3.5
-    container_name: eventpulse-spark-master
-    environment:
-      - SPARK_MODE=master
-    ports:
-      - "7077:7077"
-      - "8088:8080"
-
-  spark-worker:
-    image: bitnami/spark:3.5
-    container_name: eventpulse-spark-worker
+  spark-iceberg:
+    image: tabulario/spark-iceberg
+    container_name: eventpulse-spark-iceberg
+    networks:
+      - iceberg_net
     depends_on:
-      - spark-master
-    environment:
-      - SPARK_MODE=worker
-      - SPARK_MASTER_URL=spark://spark-master:7077
-      - SPARK_WORKER_MEMORY=1G
-      - SPARK_WORKER_CORES=1
-
-  spark-history:
-    image: bitnami/spark:3.5
-    container_name: eventpulse-spark-history
-    environment:
-      - SPARK_MODE=history-server
-      - SPARK_HISTORY_OPTS=-Dspark.history.fs.logDirectory=/tmp/spark-events
-    ports:
-      - "18080:18080"
+      - rest
+      - minio
     volumes:
-      - ./spark-events:/tmp/spark-events
+      - ./infra/spark_iceberg/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf
+      - ./tools/migrations:/opt/spark/tools/migrations
+    environment:
+      - AWS_ACCESS_KEY_ID=${MINIO_ACCESS_KEY}
+      - AWS_SECRET_ACCESS_KEY=${MINIO_SECRET_KEY}
+      - AWS_REGION=${AWS_REGION}
+    env_file:
+      - .env
+    ports:
+      - "18888:8888"
+      - "18080:8080"
+      - "10000:10000"
+      - "10001:10001"
+
+  rest:
+    image: apache/iceberg-rest-fixture
+    container_name: eventpulse-rest
+    networks:
+      - iceberg_net
+    ports:
+      - "8181:8181"
+    environment:
+      - AWS_ACCESS_KEY_ID=${MINIO_ACCESS_KEY}
+      - AWS_SECRET_ACCESS_KEY=${MINIO_SECRET_KEY}
+      - AWS_REGION=${AWS_REGION}
+      - CATALOG_WAREHOUSE=s3://warehouse/
+      - CATALOG_IO__IMPL=org.apache.iceberg.aws.s3.S3FileIO
+      - CATALOG_S3_ENDPOINT=${MINIO_ENDPOINT}
+
+  minio:
+    image: minio/minio
+    container_name: eventpulse-minio
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ACCESS_KEY}
+      - MINIO_ROOT_PASSWORD=${MINIO_SECRET_KEY}
+      - MINIO_DOMAIN=minio
+    networks:
+      iceberg_net:
+        aliases:
+          - warehouse.minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    command: [ "server", "/data", "--console-address", ":9001" ]
+    volumes:
+      - ./infra/minio/data:/data
+
+  mc:
+    image: minio/mc
+    container_name: eventpulse-mc
+    depends_on:
+      - minio
+    networks:
+      - iceberg_net
+    environment:
+      - AWS_ACCESS_KEY_ID=${MINIO_ACCESS_KEY}
+      - AWS_SECRET_ACCESS_KEY=${MINIO_SECRET_KEY}
+      - AWS_REGION=${AWS_REGION}
+    entrypoint: |
+      /bin/sh -c "
+      echo 'Waiting for MinIO to be ready...';
+      until /usr/bin/mc alias set minio ${MINIO_ENDPOINT} ${MINIO_ACCESS_KEY} ${MINIO_SECRET_KEY}; do
+        echo '...retrying MinIO connection...';
+        sleep 3;
+      done;
+      echo 'Connected to MinIO, creating bucket if not exists...';
+      /usr/bin/mc mb minio/warehouse || echo 'Bucket already exists';
+      /usr/bin/mc policy set public minio/warehouse || true;
+      echo 'MinIO bucket setup complete, sleeping forever';
+      tail -f /dev/null
+      "
+
+networks:
+  iceberg_net:
