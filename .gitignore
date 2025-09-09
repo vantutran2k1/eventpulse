@@ -208,3 +208,4 @@ __marimo__/
 
 # Infra volumes
 infra/minio/
+infra/postgres/

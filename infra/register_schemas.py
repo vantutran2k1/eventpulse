@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-SCHEMA_REGISTRY_URL = os.getenv("SCHEMA_REGISTRY_URL", "http://localhost:8081")
+SCHEMA_REGISTRY_URI = os.getenv("SCHEMA_REGISTRY_URI", "http://localhost:8081")
 SCHEMA_DIR = os.path.join(os.path.dirname(__file__), "schemas")
 
 
@@ -20,7 +20,7 @@ def register_schema(topic: str, schema_file: str):
 
     payload = {"schema": schema_str}
     resp = requests.post(
-        f"{SCHEMA_REGISTRY_URL}/subjects/{subject}/versions",
+        f"{SCHEMA_REGISTRY_URI}/subjects/{subject}/versions",
         headers={"Content-Type": "application/vnd.schemaregistry.v1+json"},
         data=json.dumps(payload),
     )
